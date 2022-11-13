@@ -1,0 +1,224 @@
+from abc import ABCMeta, abstractmethod
+import matplotlib.pyplot as plt
+import numpy as np
+import jieba
+from wordcloud import WordCloud, ImageColorGenerator
+import imageio
+import os
+from PIL import Image
+import cv2
+
+
+class Point:
+    def __init__(self, x, y):
+        plist = []
+        for i in range(len((x))):
+            plist.append((x[i], y[i]))
+        self.plist = plist
+
+
+class Plotter(metaclass=ABCMeta):
+    def __init__(self):
+        pass
+
+    @abstractmethod
+    def plot(self, *args, **kwargs):
+        pass
+
+
+class PointPlotter(Plotter):
+    def __init__(self, data_p):
+        self.data_p = data_p
+
+    def plot(self):
+        for x, y in self.data_p:
+            plt.scatter(x, y, c='b', alpha=0.5, marker='o')
+        plt.show()
+
+
+class ArrayPlotter(Plotter):
+
+    def __init__(self, data_a):
+        self.data_a = data_a
+
+    def plot(self):
+        if(len(self.data_a) == 2):
+            x = np.array(self.data_a[0])
+            y = np.array(self.data_a[1])
+            ax = plt.subplot(projection='2d')  # 创建一个二维的绘图工程
+            ax.set_title('2d_show')  # 设置本图名称
+            ax.scatter(x, y, c='y')
+            ax.set_xlabel('X')  # 设置x坐标轴
+            ax.set_ylabel('Y')  # 设置y坐标轴
+            plt.show()
+        elif(len(self.data_a) == 3):
+            x = np.array(self.data_a[0])
+            y = np.array(self.data_a[1])
+            z = np.array(self.data_a[2])
+            ax = plt.subplot(projection='3d')  # 创建一个三维的绘图工程
+            ax.set_title('3d_show')  # 设置本图名称
+            ax.scatter(x, y, z, c='r')
+            ax.set_xlabel('X')  # 设置x坐标轴
+            ax.set_ylabel('Y')
+            ax.set_zlabel('Z')
+            plt.show()
+
+
+class TextPlotter(Plotter):
+    def __init__(self, data_t):
+        self.data_t = data_t
+
+    def plot(self):
+        bg = imageio.imread('pic.png')
+        text = ''
+        stopwords = []
+        with open('stopwords_list.txt', 'r', encoding='utf-8') as f:
+            for s in f:
+                stopwords.append(s.strip())
+        stopwords.append(' ')
+        ss = jieba.cut(self.data_t.strip())
+        for word in ss:
+            if word not in stopwords:
+                text += word
+                text += ' '
+        wc = WordCloud(mask=bg, collocations=False, background_color='white',repeat=False,
+                       max_words=20, font_path="msyh.ttc").generate(text)
+        image_colors = ImageColorGenerator(bg)
+        wc.to_file('tentex.png')
+
+
+class ImagePlotter(Plotter):
+    def __init__(self, data_i):
+        self.data_i = data_i
+
+    def plot(self):
+        if type(self.data_i) == str:  #图片路径
+            all_list = os.listdir(self.data_i)
+            p_list = []
+            for files in all_list:
+                if '.jpg' in files:
+                    p_list.append(self.data_i + '\\' + files)
+            c = 0
+            while c < len(p_list):
+                if len(p_list) - c >= 4:
+                    for i in range(4):
+                        plt.subplot(2, 2, i+1)
+                        plt.imshow(cv2.imread(p_list[c]))
+                        c += 1
+                else:
+                    for j in range(len(p_list) - c):
+                        plt.subplot(1, len(p_list) - c, j+1)
+                        plt.imshow(cv2.imread(p_list[c]))
+                        c += 1
+                plt.show()
+        if type(self.data_i) == list:
+            c = 0
+            while c < len(self.data_i):
+                if len(self.data_i) - c >= 4:
+                    for i in range(4):
+                        plt.subplot(2, 2, i+1)
+                        Image.fromarray(self.data_i[c])
+                        c += 1
+                else:
+                    for j in range(len(self.data_i) - c):
+                        plt.subplot(1, len(p_list) - c, j+1)
+                        Image.fromarray(self.data_i[c])
+                        c += 1
+                plt.show()
+
+
+class GifPlotter(Plotter):
+    def __init__(self, data_g):
+        self.data_g = data_g
+
+    def plot(self):
+        all_list = os.listdir(self.data_g)
+        p_list = []
+        for files in all_list:
+            if '.jpg' in files:
+                p_list.append(self.data_g + '\\' + files)
+        gif_list = []
+        for path in p_list:
+            gif_list.append(imageio.imread(path))
+        imageio.mimsave('ten.gif', gif_list, fps=1)
+
+
+class PointAdapter(PointPlotter):   #数据点型数据适配类
+    def __init__(self, points):
+        self.points = points
+
+    def plot(self):
+        self.points.plot()
+
+
+class ArrayAdapter(ArrayPlotter):
+    def __init__(self, array):
+        self.array = array
+
+    def plot(self):
+        self.array.plot()
+
+
+class TextAdapter(TextPlotter):
+    def __init__(self, text):
+        self.text = text
+
+    def plot(self):
+        self.text.plot()
+
+
+class ImageAdapter(ImagePlotter):
+    def __init__(self, image):
+        self.image = image
+
+    def plot(self):
+        self.image.plot()
+
+
+class GifAdapter(GifPlotter):
+    def __init__(self, gif):
+        self.gif = gif
+
+    def plot(self):
+        self.gif.plot()
+
+
+def main():
+    objects = []
+    x = [1, 2, 3, 4, 5]
+    y = [3, 2, 5, 9, 1]
+    z = [6, 3, 4, 1, 2]
+    data_p = Point(x, y)
+    print(data_p.plist)
+    p = PointPlotter(data_p.plist)
+    objects.append(PointAdapter(p))
+    a = ArrayPlotter([x, y, z])
+    objects.append(ArrayAdapter(a))
+    file = 'summer.txt'
+    with open(file, encoding='utf-8') as f:
+        contents = f.read()
+    t = TextPlotter(contents)
+    objects.append(TextAdapter(t))
+    image_path = 'D:\pyctry\one\picture'
+    image_matrix1 = []
+    image_matrix2 = []
+    all_list = os.listdir(image_path)
+    for files in all_list:
+        if '.jpg' in files:
+            image_matrix1.append(image_path + '\\' + files)
+    for j in range(4):
+        m = Image.open(image_matrix1[j])
+        data = np.asarray(m)
+        image_matrix2.append(data)
+    i = ImagePlotter(image_path)
+    i2 = ImagePlotter(image_matrix2)
+    objects.append(ImageAdapter(i))
+    objects.append(ImageAdapter(i2))
+    g = GifPlotter(image_path)
+    objects.append(GifAdapter(g))
+    for x in objects:
+        x.plot()
+    return
+
+
+main()
